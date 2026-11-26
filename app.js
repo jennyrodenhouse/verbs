@@ -90,10 +90,10 @@
     frame.style.setProperty("--pad", PAD + "px");
   }
 
-  function buildBlock(lines, fs, rowH, words) {
+  function buildBlock(lines, fs, rowH, words, start = 0) {
     const block = document.createElement("div");
     block.style.fontSize = fs + "px";
-    let i = 0;
+    let i = start;
     for (const ln of lines) {
       const row = document.createElement("div");
       row.className = "line";
@@ -152,6 +152,21 @@
     const tokens = all[Math.max(0, clickFacet)];
     const { fs, lines } = fit(tokens, INNER, H);
     show([buildBlock(lines, fs, H / lines.length)], advance);
+    announce(v, tokens);
+  }
+
+  // DOUBLE-CLICK: the entry, doubled. The frame splits in two and the second copy
+  // lands just after the first. Each further double-click swaps in the next set of words.
+  let doubleFacet = -1;
+  function renderDouble(advance) {
+    const v = VERBS["double-click"];
+    const all = facets(v);
+    if (advance) doubleFacet = (doubleFacet + 1) % all.length;
+    const tokens = all[Math.max(0, doubleFacet)];
+    const half = H / 2;
+    const { fs, lines } = fit(tokens, INNER, half);
+    const rowH = half / lines.length;
+    show([buildBlock(lines, fs, rowH), buildBlock(lines, fs, rowH, null, 30)], advance);
     announce(v, tokens);
   }
 
@@ -242,9 +257,11 @@
     const changed = next !== mode;
     mode = next;
     if (changed && next === "click") clickFacet = -1;
+    if (changed && next === "double") doubleFacet = -1;
     if (next !== "scroll") scrollTrack = null;
     if (next === "hover") renderHover(changed);
     else if (next === "click") renderClick(true);
+    else if (next === "double") renderDouble(true);
     else if (next === "scroll" && changed) renderScroll(true);
     else if (next === "drag" && changed) renderDrag(true);
     else if ((next === "pinch" || next === "stretch") && changed) renderZoom(next, true);
@@ -256,6 +273,7 @@
     dims();
     if (mode === "hover") renderHover(false);
     else if (mode === "click") renderClick(false);
+    else if (mode === "double") renderDouble(false);
     else if (mode === "scroll") renderScroll(false);
     else if (mode === "drag") renderDrag(false);
     else if (mode === "pinch" || mode === "stretch") renderZoom(mode, false);
@@ -333,13 +351,31 @@
     touches.delete(e.pointerId);
     if (touches.size < 2) touchDist = 0;
     if (!down || e.pointerId !== down.id) return;
-    if (!down.moved && e.type === "pointerup") setMode("click", { anchor: { x: e.clientX, y: e.clientY } });
+    if (!down.moved && e.type === "pointerup") press(e.clientX, e.clientY);
     else anchor = { x: e.clientX, y: e.clientY };
     lastAction = performance.now();
     down = null;
   };
   addEventListener("pointerup", endPress);
   addEventListener("pointercancel", endPress);
+
+  // One click waits briefly to see whether a second one follows.
+  const DOUBLE_MS = 280;
+  let pendingClick = null;
+  function press(x, y) {
+    const at = { x, y };
+    if (pendingClick && Math.hypot(x - pendingClick.x, y - pendingClick.y) < 24) {
+      clearTimeout(pendingClick.timer);
+      pendingClick = null;
+      setMode("double", { anchor: at });
+      return;
+    }
+    if (pendingClick) clearTimeout(pendingClick.timer);
+    pendingClick = {
+      x, y,
+      timer: setTimeout(() => { pendingClick = null; setMode("click", { anchor: at }); }, DOUBLE_MS),
+    };
+  }
 
   function scrollBy(dy) {
     if (mode !== "scroll") setMode("scroll");
@@ -370,7 +406,8 @@
 
   addEventListener("keydown", e => {
     const k = e.key;
-    if (k === " " || k === "Enter") { e.preventDefault(); setMode("click", { anchor: { x: pointer.x, y: pointer.y } }); }
+    if ((k === " " || k === "Enter") && e.shiftKey) { e.preventDefault(); setMode("double", { anchor: { x: pointer.x, y: pointer.y } }); }
+    else if (k === " " || k === "Enter") { e.preventDefault(); setMode("click", { anchor: { x: pointer.x, y: pointer.y } }); }
     else if (k === "ArrowDown" || k === "PageDown") { e.preventDefault(); scrollBy(k === "PageDown" ? H * 0.8 : 60); }
     else if (k === "ArrowUp" || k === "PageUp") { e.preventDefault(); scrollBy(k === "PageUp" ? -H * 0.8 : -60); }
     else if (k === "ArrowLeft" || k === "ArrowRight") {

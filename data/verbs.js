@@ -21,6 +21,16 @@ window.VERBS = [
     "history": "The telegraph sounder clicking out Morse — the sharp mechanical sound the word imitates."
   },
   {
+    "word": "double-click",
+    "definition": "To press a mouse button twice in quick succession to open or activate an item.",
+    "dateComputing": "c.1984",
+    "computing": "Two rapid clicks to open or activate.",
+    "signifier": "Weakly signified — a selectable icon; the gesture must be learned.",
+    "dateOrigin": "1980s compound",
+    "origin": "Click, doubled — a coinage of the mouse era.",
+    "history": "Engelbart’s mouse (1964) and the Macintosh (1984), which taught the world the gesture."
+  },
+  {
     "word": "scroll",
     "definition": "To roll up into a cylinder, as a scroll of parchment; in computing, move content up, down, or sideways within a view.",
     "dateComputing": "c.1973",
