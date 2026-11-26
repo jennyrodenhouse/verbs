@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- artifact:start -->
+<title>Mouse Verbs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@200..700&display=swap">
+<style>
+  /* One frame, all type. Justified lines fill the full width and height. */
+  :root {
+    --paper: #ebebe9;
+    --ink: #121213;
+    --mute: #707073;
+    --font: "Inter Tight", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --paper: #121213; --ink: #ededea; --mute: #8b8b8e; color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --paper: #121213; --ink: #ededea; --mute: #8b8b8e; color-scheme: dark; }
+
+  html, body { height: 100%; margin: 0; overflow: hidden; background: var(--paper); }
+  body { touch-action: none; -webkit-user-select: none; user-select: none; cursor: default; }
+
+  #frame {
+    position: fixed; inset: 0; overflow: hidden;
+    font-family: var(--font); color: var(--mute);
+    padding-inline: var(--pad, 12px);
+  }
+  .track { will-change: transform; }
+  .line {
+    display: flex; justify-content: space-between; align-items: center;
+    white-space: nowrap; line-height: 1;
+  }
+  .w {
+    --t: 0;
+    font-weight: calc(300 + 340 * var(--t));
+    color: color-mix(in oklab, var(--ink) calc(var(--t) * 100%), var(--mute));
+    letter-spacing: -0.01em;
+  }
+  .w.s { --t: 0.76; }
+
+  .enter .w { animation: arrive 0.32s ease-out both; animation-delay: calc(min(var(--i), 70) * 9ms); }
+  @keyframes arrive { from { opacity: 0; } to { opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .enter .w { animation: none; }
+  }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+</style>
+<!-- artifact:end -->
+</head>
+<body>
+<!-- artifact:body -->
+<div id="frame" aria-hidden="true"></div>
+<p id="live" class="sr-only" aria-live="polite"></p>
+<script src="data/verbs.js"></script>
+<script src="app.js"></script>
+<!-- artifact:bodyend -->
+</body>
+</html>
