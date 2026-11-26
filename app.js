@@ -128,25 +128,20 @@
   let scrollTrack = null, scrollPos = 0, scrollTarget = 0, scrollDir = 1;
   let dragBase = [], dragFs = 0, dragShift = 0, dragOffset = 0;
 
-  // HOVER: the word repeated to fill the frame. Words near the pointer darken and thicken.
+  // HOVER: the word, definition and history. Words near the pointer darken and thicken.
+  // Lines are measured at the heaviest weight so a word can thicken without reflowing.
   function renderHover(animate) {
     const v = VERBS.hover;
-    const word = stop(cap(v.word));
-    const rows = Math.max(7, Math.min(18, Math.round((H / Math.min(W, H)) * 9)));
-    let fs = H / (rows * LH);
-    const space = measure(" ", WEIGHT.light) * 1.1;
-    const ww = measure(word, WEIGHT.max);
-    if ((ww * fs) / 100 > INNER) fs = (INNER / ww) * 100;
-    const perLine = Math.max(1, Math.floor((INNER * 100 / fs + space) / (ww + space)));
-    const lines = Array.from({ length: rows }, () =>
-      Array.from({ length: perLine }, () => ({ t: word, s: false })));
+    const tokens = facets(v)[0];
+    const { fs, lines } = fit(tokens, INNER, H, WEIGHT.max);
     hoverWords = [];
-    show([buildBlock(lines, fs, H / rows, hoverWords)], animate);
+    show([buildBlock(lines, fs, H / lines.length, hoverWords)], animate);
     hoverCenters = hoverWords.map(el => {
       const r = el.getBoundingClientRect();
-      return { x: r.left + r.width / 2, y: r.top + r.height / 2, t: 0 };
+      const base = el.classList.contains("s") ? 0.76 : 0;
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2, base, t: base };
     });
-    announce(v);
+    announce(v, tokens);
   }
 
   // CLICK: the word, definition and history. Each click swaps in the next set of words.
@@ -322,7 +317,7 @@
       for (let i = 0; i < hoverWords.length; i++) {
         const c = hoverCenters[i];
         const d = Math.hypot(c.x - pointer.sx, (c.y - pointer.sy) * 1.3) / R;
-        const t = pointer.strength * Math.exp(-d * d);
+        const t = Math.max(c.base, pointer.strength * Math.exp(-d * d));
         if (Math.abs(t - c.t) > 0.004) {
           c.t = t;
           hoverWords[i].style.setProperty("--t", t.toFixed(3));

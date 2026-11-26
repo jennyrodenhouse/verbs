@@ -6,7 +6,7 @@ A website where each verb is performed, not just read. Doing the verb shows the 
 
 | Verb | What you do | What happens |
 | --- | --- | --- |
-| hover | move the mouse | the word fills the frame; words near the pointer go dark and heavy |
+| hover | move the mouse | the word, definition, origin and history fill the frame; words near the pointer go dark and heavy |
 | click | click | hover disappears; the word, definition, origin and history appear. Each further click swaps in the computing sense and signifier |
 | scroll | scroll the wheel (or swipe up/down) | the full entry scrolls and loops forever |
 | drag | press and drag (or swipe sideways) | words get pulled along the lines and wrap back to the start |
