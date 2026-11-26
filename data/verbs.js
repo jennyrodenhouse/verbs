@@ -39,5 +39,25 @@ window.VERBS = [
     "dateOrigin": "c.1300, Old Norse draga",
     "origin": "Old Norse draga — to draw, to pull along the ground.",
     "history": "A fishing dragnet drawn along the seabed (draga, to draw or pull along the ground)."
+  },
+  {
+    "word": "pinch",
+    "definition": "To grip tightly between finger and thumb; informally, to steal; on a touchscreen, bring two fingers together to zoom out.",
+    "dateComputing": "2007",
+    "computing": "Draw two fingers together to shrink or zoom out.",
+    "signifier": "Unsignified — a learned gesture; at most a fleeting scale readout.",
+    "dateOrigin": "c.1200, Old French pincier",
+    "origin": "Old North French pinchier — to nip, to squeeze between.",
+    "history": "Pliny’s ‘grain of salt’ — the cook’s pinch (pinchier, to nip or squeeze between the fingers)."
+  },
+  {
+    "word": "stretch",
+    "definition": "To make or become longer or wider without tearing; on a touchscreen, spread two fingers apart to zoom in.",
+    "dateComputing": "2007",
+    "computing": "Spread two fingers apart to enlarge or zoom in.",
+    "signifier": "Unsignified — the inverse of pinch; content scales up under two fingers.",
+    "dateOrigin": "Old English streccan",
+    "origin": "Old English streccan — to draw out, to extend.",
+    "history": "Wet cloth stretched on the tenter’s hooks to dry — the origin of ‘on tenterhooks’ (streccan, to draw out)."
   }
 ];

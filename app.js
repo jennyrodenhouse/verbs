@@ -195,6 +195,49 @@
     show([buildBlock(lines, fs, H / lines.length)], animate);
   }
 
+  // PINCH and STRETCH: the entry repeats to fill the frame at any size.
+  // Pinching inward shrinks it so more copies pack in; stretching outward enlarges it.
+  let zoomBase = [], zoomFs = 0, zoomScale = 1, zoomOpp = 1;
+  function renderZoom(verb, animate) {
+    const v = VERBS[verb];
+    zoomBase = facets(v).flat();
+    zoomFs = fit(zoomBase, INNER, H).fs;
+    layoutZoom(animate);
+    announce(v, zoomBase);
+  }
+  function layoutZoom(animate) {
+    const longest = Math.max(...zoomBase.map(tk => measure(tk.t, weightOf(tk))));
+    const minFs = Math.min(zoomFs, 7);
+    const maxFs = Math.max(zoomFs, (INNER * 100) / longest);
+    const fs = Math.max(minFs, Math.min(maxFs, zoomFs * zoomScale));
+    zoomScale = fs / zoomFs;
+    const rows = Math.max(1, Math.floor(H / (fs * LH)));
+    let stream = zoomBase, lines = breakLines(stream, fs, INNER) || [];
+    while (lines.length <= rows && stream.length < 40000) {
+      stream = stream.concat(zoomBase);
+      lines = breakLines(stream, fs, INNER) || [];
+    }
+    show([buildBlock(lines.slice(0, rows), fs, H / rows)], animate);
+  }
+  // f < 1 means fingers moving together, f > 1 means moving apart.
+  function zoomBy(f) {
+    if (!isFinite(f) || f <= 0 || f === 1) return;
+    const want = f < 1 ? "pinch" : "stretch";
+    if (mode !== want) {
+      // Ignore small wobble in the other direction during a gesture.
+      if (mode === "pinch" || mode === "stretch") {
+        zoomOpp *= f;
+        if (Math.abs(Math.log(zoomOpp)) < 0.05) return;
+      }
+      zoomOpp = 1; zoomScale = 1;
+      setMode(want);
+    } else zoomOpp = 1;
+    zoomScale *= f;
+    layoutZoom(false);
+    anchor = { x: pointer.x, y: pointer.y };
+    lastAction = performance.now();
+  }
+
   function setMode(next, opts = {}) {
     const changed = next !== mode;
     mode = next;
@@ -204,6 +247,7 @@
     else if (next === "click") renderClick(true);
     else if (next === "scroll" && changed) renderScroll(true);
     else if (next === "drag" && changed) renderDrag(true);
+    else if ((next === "pinch" || next === "stretch") && changed) renderZoom(next, true);
     if (opts.anchor) anchor = opts.anchor;
     lastAction = performance.now();
   }
@@ -214,6 +258,7 @@
     else if (mode === "click") renderClick(false);
     else if (mode === "scroll") renderScroll(false);
     else if (mode === "drag") renderDrag(false);
+    else if (mode === "pinch" || mode === "stretch") renderZoom(mode, false);
   }
 
   // ---------- input ----------
@@ -225,7 +270,24 @@
 
   const awayDistance = () => Math.min(W, H) * 0.25;
 
+  // Two-finger touch: distance between the fingers drives pinch and stretch.
+  const touches = new Map();
+  let touchDist = 0;
+  const spread = () => {
+    const [a, b] = [...touches.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
+
   addEventListener("pointermove", e => {
+    if (touches.has(e.pointerId)) {
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touches.size >= 2) {
+        const d = spread();
+        if (touchDist > 0) zoomBy(d / touchDist);
+        touchDist = d;
+        return;
+      }
+    }
     if (e.pointerType === "mouse" || e.pointerType === "pen") {
       pointer.x = e.clientX; pointer.y = e.clientY;
       if (!pointer.inside) { pointer.sx = e.clientX; pointer.sy = e.clientY; }
@@ -260,10 +322,16 @@
 
   addEventListener("pointerdown", e => {
     if (e.button !== 0) return;
+    if (e.pointerType === "touch") {
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touches.size >= 2) { down = null; touchDist = spread(); return; }
+    }
     down = { id: e.pointerId, type: e.pointerType, x: e.clientX, y: e.clientY, lastY: e.clientY, moved: false };
   });
 
   const endPress = e => {
+    touches.delete(e.pointerId);
+    if (touches.size < 2) touchDist = 0;
     if (!down || e.pointerId !== down.id) return;
     if (!down.moved && e.type === "pointerup") setMode("click", { anchor: { x: e.clientX, y: e.clientY } });
     else anchor = { x: e.clientX, y: e.clientY };
@@ -283,9 +351,22 @@
 
   addEventListener("wheel", e => {
     e.preventDefault();
+    // Trackpad pinch arrives as a wheel event with ctrlKey set (Chrome, Firefox, Edge).
+    if (e.ctrlKey) { zoomBy(Math.exp(-e.deltaY * 0.01)); return; }
     const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? H : 1;
     scrollBy((e.deltaY || e.deltaX) * unit);
   }, { passive: false });
+
+  // Safari on macOS reports trackpad pinch as gesture events instead.
+  let gestureScale = 1;
+  addEventListener("gesturestart", e => { e.preventDefault(); gestureScale = 1; });
+  addEventListener("gesturechange", e => {
+    e.preventDefault();
+    if (touches.size >= 2) return; // touchscreens are handled by pointer events
+    zoomBy(e.scale / gestureScale);
+    gestureScale = e.scale;
+  });
+  addEventListener("gestureend", e => e.preventDefault());
 
   addEventListener("keydown", e => {
     const k = e.key;
@@ -298,7 +379,9 @@
       dragOffset += (k === "ArrowRight" ? 1 : -1) * dragFs * 1.4;
       layoutDrag(false);
       lastAction = performance.now();
-    } else if (k === "Escape") setMode("hover");
+    } else if (k === "+" || k === "=") { e.preventDefault(); zoomBy(1.15); }
+    else if (k === "-" || k === "_") { e.preventDefault(); zoomBy(1 / 1.15); }
+    else if (k === "Escape") setMode("hover");
   });
 
   let resizeTimer = 0;
